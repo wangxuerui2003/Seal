@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Seal</string>
+    <string name="app_name" translatable="false">Seal BG</string>
     <string name="video_directory">Video folder</string>
     <string name="extract_audio">Save as audio</string>
     <string name="create_thumbnail">Save thumbnail</string>
@@ -102,6 +102,7 @@
     <string name="defaults">Default</string>
     <string name="channel_name">Download</string>
     <string name="channel_description">Notify of downloaded files and progress</string>
+    <string name="playback_channel_name">Playback</string>
     <string name="video_url">Video link</string>
     <string name="download_finish_notification">Download finished. Tap to open.</string>
     <string name="execute_command_notification">Running custom commands…</string>

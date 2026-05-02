@@ -53,6 +53,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -77,7 +78,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.junkfood.seal.App
 import com.junkfood.seal.R
@@ -87,6 +91,10 @@ import com.junkfood.seal.database.backup.BackupUtil.BackupDestination.File
 import com.junkfood.seal.database.backup.BackupUtil.toJsonString
 import com.junkfood.seal.database.backup.BackupUtil.toURLListString
 import com.junkfood.seal.database.objects.DownloadedVideoInfo
+import com.junkfood.seal.player.PlaybackQueueItem
+import com.junkfood.seal.player.PlaybackPreferences
+import com.junkfood.seal.player.PlaybackStartRequest
+import com.junkfood.seal.player.PlaybackStartStore
 import com.junkfood.seal.ui.common.HapticFeedback.slightHapticFeedback
 import com.junkfood.seal.ui.common.LocalWindowWidthState
 import com.junkfood.seal.ui.component.BackButton
@@ -102,6 +110,7 @@ import com.junkfood.seal.ui.svg.drawablevectors.videoSteaming
 import com.junkfood.seal.util.AUDIO_REGEX
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.ToastUtil
+import com.junkfood.seal.util.toDurationText
 import com.junkfood.seal.util.toFileSizeText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -130,11 +139,25 @@ fun DownloadedVideoInfo.filterByExtractor(extractor: String?): Boolean {
     return extractor.isNullOrEmpty() || (this.extractor == extractor)
 }
 
+private fun watchProgressText(id: Int): String {
+    val progress = PlaybackPreferences.getProgress(id.toString()) ?: return ""
+    val position = (progress.positionMs / 1000).toInt().toDurationText()
+    val duration =
+        progress.durationMs
+            .takeIf { it > 0L }
+            ?.let { (it / 1000).toInt().toDurationText() }
+    return if (duration == null) "已看到 $position" else "已看到 $position / $duration"
+}
+
 private const val TAG = "VideoListPage"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBack: () -> Unit) {
+fun VideoListPage(
+    viewModel: VideoListViewModel = koinViewModel(),
+    onNavigateBack: () -> Unit,
+    onNavigateToPlayer: () -> Unit = {},
+) {
     val viewState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val fullVideoList by viewModel.videoListFlow.collectAsStateWithLifecycle(emptyList())
     val searchedVideoList by
@@ -155,10 +178,19 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
     val softKeyboardController = LocalSoftwareKeyboardController.current
     val view = LocalView.current
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val clipboardManager = LocalClipboardManager.current
 
     val fileSizeMap by
         viewModel.fileSizeMapFlow.collectAsStateWithLifecycle(initialValue = emptyMap())
+    var progressRefreshKey by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) progressRefreshKey++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val hostState = remember { SnackbarHostState() }
 
@@ -248,6 +280,10 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
     val visibleItemCount =
         remember(videoList, viewState) {
             mutableIntStateOf(videoList.count { it.filterSort(viewState, filterSet) })
+        }
+    val visibleVideoList =
+        remember(videoList, viewState, filterSet) {
+            videoList.filter { it.filterSort(viewState, filterSet) }
         }
 
     val checkBoxState by
@@ -480,6 +516,8 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
                                 thumbnailUrl = thumbnailUrl,
                                 videoPath = videoPath,
                                 videoFileSize = fileSizeMap.getOrElse(id) { 0L },
+                                watchProgressText =
+                                    remember(id, progressRefreshKey) { watchProgressText(id) },
                                 videoUrl = videoUrl,
                                 isSelectEnabled = { isSelectEnabled },
                                 isSelected = { selectedItemIds.contains(id) },
@@ -488,11 +526,23 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
                                     else selectedItemIds.add(id)
                                 },
                                 onClick = {
-                                    FileUtil.openFile(path = videoPath) {
-                                        ToastUtil.makeToastSuspend(
-                                            App.context.getString(R.string.file_unavailable)
+                                    val queue =
+                                        visibleVideoList.map {
+                                            PlaybackQueueItem(
+                                                id = it.id,
+                                                title = it.videoTitle,
+                                                author = it.videoAuthor,
+                                                thumbnailUrl = it.thumbnailUrl,
+                                                path = it.videoPath,
+                                            )
+                                        }
+                                    PlaybackStartStore.set(
+                                        PlaybackStartRequest(
+                                            queue = queue,
+                                            startIndex = queue.indexOfFirst { it.id == id },
                                         )
-                                    }
+                                    )
+                                    onNavigateToPlayer()
                                 },
                                 onLongClick = {
                                     isSelectEnabled = true

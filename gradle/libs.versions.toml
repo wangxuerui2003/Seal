@@ -36,6 +36,7 @@ mmkv = "1.3.12"
 # pin to v1.3.x for 32-bit support
 
 koin = "4.0.0"
+media3 = "1.7.1"
 
 ktfmt = "0.20.1"
 
@@ -109,6 +110,10 @@ youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", n
 youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", name = "aria2c", version.ref = "youtubedlAndroid" }
 
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
+
+media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

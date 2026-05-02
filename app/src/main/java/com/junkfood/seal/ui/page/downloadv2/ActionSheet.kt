@@ -291,7 +291,7 @@ fun LazyListScope.ActionButtons(
         is Completed -> {
             item(key = "PlayButton") {
                 PlayButton(modifier = Modifier.animateItem()) {
-                    onActionPost(task, UiAction.OpenFile(downloadState.filePath))
+                    onActionPost(task, UiAction.OpenFile(downloadState.filePath, viewState))
                     onDismissRequest()
                 }
             }

@@ -110,7 +110,7 @@ android {
             }
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            resValue("string", "app_name", "Seal Debug")
+            resValue("string", "app_name", "Seal BG")
         }
     }
 
@@ -125,7 +125,7 @@ android {
         create("githubPreview") {
             dimension = "publishChannel"
             applicationIdSuffix = ".preview"
-            resValue("string", "app_name", "Seal Preview")
+            resValue("string", "app_name", "Seal BG")
         }
 
         create("fdroid") {
@@ -185,6 +185,9 @@ dependencies {
     implementation(libs.bundles.youtubedlAndroid)
 
     implementation(libs.mmkv)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
+    implementation(libs.media3.ui)
 
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.ext)

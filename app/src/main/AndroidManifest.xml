@@ -8,6 +8,7 @@
         android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission
         android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
@@ -77,12 +78,23 @@
             android:exported="false"
             android:foregroundServiceType="specialUse" />
 
+        <service
+            android:name=".player.PlaybackService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="unspecified"
+            android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Seal">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -108,6 +120,14 @@
                 <data android:mimeType="audio/*" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.page.player.FullscreenPlayerActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.Seal" />
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

@@ -1,6 +1,5 @@
 package com.junkfood.seal
 
-import android.app.PendingIntent
 import android.util.Log
 import androidx.annotation.CheckResult
 import androidx.compose.runtime.Composable
@@ -13,6 +12,7 @@ import com.junkfood.seal.App.Companion.context
 import com.junkfood.seal.App.Companion.startService
 import com.junkfood.seal.App.Companion.stopService
 import com.junkfood.seal.database.objects.CommandTemplate
+import com.junkfood.seal.player.PlaybackLauncher
 import com.junkfood.seal.util.COMMAND_DIRECTORY
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
@@ -412,22 +412,12 @@ object Downloader {
                         if (it.isEmpty()) R.string.status_completed
                         else R.string.download_finish_notification
                     )
-                FileUtil.createIntentForOpeningFile(it.firstOrNull()).run {
-                    NotificationUtil.finishNotification(
-                        notificationId,
-                        title = videoInfo.title,
-                        text = text,
-                        intent =
-                            if (this != null)
-                                PendingIntent.getActivity(
-                                    context,
-                                    0,
-                                    this,
-                                    PendingIntent.FLAG_IMMUTABLE,
-                                )
-                            else null,
-                    )
-                }
+                NotificationUtil.finishNotification(
+                    notificationId,
+                    title = videoInfo.title,
+                    text = text,
+                    intent = PlaybackLauncher.pendingIntent(context, it.firstOrNull(), videoInfo.title),
+                )
             }
     }
 
@@ -564,7 +554,19 @@ object Downloader {
         applicationScope.launch(Dispatchers.IO) { DownloadUtil.executeCommandInBackground(url) }
 
     fun openDownloadResult() {
-        if (taskState.value.progress == 100f) FileUtil.openFileFromResult(downloadResultTemp)
+        if (taskState.value.progress == 100f) {
+            val path = downloadResultTemp.getOrNull()?.firstOrNull() ?: return
+            PlaybackLauncher.start(
+                context,
+                com.junkfood.seal.player.PlaybackQueueItem(
+                    id = path.hashCode(),
+                    title = taskState.value.title.ifBlank { "Video" },
+                    author = "",
+                    thumbnailUrl = "",
+                    path = path,
+                ),
+            )
+        }
     }
 
     fun onProcessStarted() = mutableProcessCount.update { it + 1 }

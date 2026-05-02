@@ -1,6 +1,5 @@
 package com.junkfood.seal.download
 
-import android.app.PendingIntent
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
@@ -19,6 +18,7 @@ import com.junkfood.seal.download.Task.DownloadState.Running
 import com.junkfood.seal.download.Task.RestartableAction.Download
 import com.junkfood.seal.download.Task.RestartableAction.FetchInfo
 import com.junkfood.seal.download.Task.TypeInfo
+import com.junkfood.seal.player.PlaybackLauncher
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FileUtil
 import com.junkfood.seal.util.NotificationUtil
@@ -316,22 +316,18 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                                 if (pathList.isEmpty()) R.string.status_completed
                                 else R.string.download_finish_notification
                             )
-                        FileUtil.createIntentForOpeningFile(pathList.firstOrNull()).run {
-                            NotificationUtil.finishNotification(
-                                notificationId,
-                                title = viewState.title,
-                                text = text,
-                                intent =
-                                    if (this != null)
-                                        PendingIntent.getActivity(
-                                            appContext,
-                                            0,
-                                            this,
-                                            PendingIntent.FLAG_IMMUTABLE,
-                                        )
-                                    else null,
-                            )
-                        }
+                        NotificationUtil.finishNotification(
+                            notificationId,
+                            title = viewState.title,
+                            text = text,
+                            intent =
+                                PlaybackLauncher.pendingIntent(
+                                    appContext,
+                                    pathList.firstOrNull(),
+                                    viewState.title,
+                                    viewState.uploader,
+                                ),
+                        )
                     }
                     .onFailure { throwable ->
                         if (throwable is YoutubeDL.CanceledException) {

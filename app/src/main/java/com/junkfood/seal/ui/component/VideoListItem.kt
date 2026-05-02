@@ -67,6 +67,7 @@ fun MediaListItem(
     videoPath: String = "",
     videoUrl: String = "",
     videoFileSize: Long = 0L,
+    watchProgressText: String = "",
     isSelectEnabled: () -> Boolean = { false },
     isSelected: () -> Boolean = { false },
     onSelect: () -> Unit = {},
@@ -141,6 +142,15 @@ fun MediaListItem(
                         },
                     maxLines = 1,
                 )
+                if (watchProgressText.isNotBlank()) {
+                    Text(
+                        modifier = Modifier.padding(top = 3.dp),
+                        text = watchProgressText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                    )
+                }
             }
         }
         AnimatedVisibility(

@@ -520,6 +520,7 @@ private fun CardItemStateText(modifier: Modifier = Modifier, downloadState: Task
 @Composable
 fun ActionButton(
     modifier: Modifier = Modifier,
+    viewState: Task.ViewState = Task.ViewState(),
     downloadState: Task.DownloadState,
     onActionPost: (UiAction) -> Unit,
 ) =
@@ -534,7 +535,7 @@ fun ActionButton(
         }
         is Completed -> {
             PlayVideoButton(modifier = modifier) {
-                onActionPost(UiAction.OpenFile(downloadState.filePath))
+                onActionPost(UiAction.OpenFile(downloadState.filePath, viewState))
             }
         }
         is FetchingInfo,

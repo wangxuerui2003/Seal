@@ -98,6 +98,8 @@ import com.junkfood.seal.download.Task.DownloadState.FetchingInfo
 import com.junkfood.seal.download.Task.DownloadState.Idle
 import com.junkfood.seal.download.Task.DownloadState.ReadyWithInfo
 import com.junkfood.seal.download.Task.DownloadState.Running
+import com.junkfood.seal.player.PlaybackLauncher
+import com.junkfood.seal.player.PlaybackQueueItem
 import com.junkfood.seal.ui.common.HapticFeedback.slightHapticFeedback
 import com.junkfood.seal.ui.common.LocalDarkTheme
 import com.junkfood.seal.ui.common.LocalFixedColorRoles
@@ -173,7 +175,7 @@ enum class Filter {
 }
 
 sealed interface UiAction {
-    data class OpenFile(val filePath: String?) : UiAction
+    data class OpenFile(val filePath: String?, val viewState: Task.ViewState? = null) : UiAction
 
     data class ShareFile(val filePath: String?) : UiAction
 
@@ -232,7 +234,16 @@ fun DownloadPageV2(
             }
             is UiAction.OpenFile -> {
                 action.filePath?.let {
-                    FileUtil.openFile(path = it) { context.makeToast(R.string.file_unavailable) }
+                    PlaybackLauncher.start(
+                        context,
+                        PlaybackQueueItem(
+                            id = it.hashCode(),
+                            title = action.viewState?.title?.ifBlank { null } ?: "Video",
+                            author = action.viewState?.uploader.orEmpty(),
+                            thumbnailUrl = action.viewState?.thumbnailUrl.orEmpty(),
+                            path = it,
+                        ),
+                    )
                 }
             }
             is UiAction.OpenThumbnailURL -> {
@@ -464,6 +475,7 @@ fun DownloadPageImplV2(
                                     actionButton = {
                                         ActionButton(
                                             modifier = Modifier,
+                                            viewState = state.viewState,
                                             downloadState = state.downloadState,
                                         ) {
                                             onActionPost(task, it)

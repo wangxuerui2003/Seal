@@ -33,6 +33,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.junkfood.seal.App
 import com.junkfood.seal.R
+import com.junkfood.seal.player.PlaybackStartStore
 import com.junkfood.seal.ui.common.HapticFeedback.slightHapticFeedback
 import com.junkfood.seal.ui.common.LocalWindowWidthState
 import com.junkfood.seal.ui.common.Route
@@ -45,6 +46,7 @@ import com.junkfood.seal.ui.page.command.TaskListPage
 import com.junkfood.seal.ui.page.command.TaskLogPage
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.page.downloadv2.DownloadPageV2
+import com.junkfood.seal.ui.page.player.PlayerPage
 import com.junkfood.seal.ui.page.settings.SettingsPage
 import com.junkfood.seal.ui.page.settings.about.AboutPage
 import com.junkfood.seal.ui.page.settings.about.CreditsPage
@@ -72,7 +74,7 @@ import org.koin.androidx.compose.koinViewModel
 private const val TAG = "HomeEntry"
 
 private val TopDestinations =
-    listOf(Route.HOME, Route.TASK_LIST, Route.SETTINGS_PAGE, Route.DOWNLOADS)
+    listOf(Route.DOWNLOADS, Route.HOME, Route.TASK_LIST, Route.SETTINGS_PAGE)
 
 @Composable
 fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
@@ -92,7 +94,11 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
     val onNavigateBack: () -> Unit = {
         with(navController) {
             if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
-                popBackStack()
+                if (currentDestination?.route == Route.DOWNLOADS) {
+                    navigate(Route.HOME) { launchSingleTop = true }
+                } else {
+                    popBackStack()
+                }
             }
         }
     }
@@ -109,6 +115,11 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
     LaunchedEffect(currentRoute) {
         if (currentRoute in TopDestinations) {
             currentTopDestination = currentRoute
+        }
+    }
+    LaunchedEffect(currentRoute, PlaybackStartStore.hasRequest()) {
+        if (PlaybackStartStore.hasRequest() && currentRoute != Route.PLAYER) {
+            navController.navigate(Route.PLAYER) { launchSingleTop = true }
         }
     }
 
@@ -141,7 +152,7 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
             NavHost(
                 modifier = Modifier.align(Alignment.Center),
                 navController = navController,
-                startDestination = Route.HOME,
+                startDestination = Route.DOWNLOADS,
             ) {
                 animatedComposable(Route.HOME) {
                     DownloadPageV2(
@@ -152,7 +163,13 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
                         },
                     )
                 }
-                animatedComposable(Route.DOWNLOADS) { VideoListPage { onNavigateBack() } }
+                animatedComposable(Route.DOWNLOADS) {
+                    VideoListPage(
+                        onNavigateBack = { onNavigateBack() },
+                        onNavigateToPlayer = { navController.navigate(Route.PLAYER) },
+                    )
+                }
+                slideInVerticallyComposable(Route.PLAYER) { PlayerPage { onNavigateBack() } }
                 animatedComposableVariant(Route.TASK_LIST) {
                     TaskListPage(
                         onNavigateBack = onNavigateBack,
